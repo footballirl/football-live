@@ -7,6 +7,30 @@
 <meta name="theme-color" content="#080d18">
 <title>Football Live | Watch Football</title>
 <style>
+  .match-search {
+  width: 100%;
+  margin: 12px 0 18px;
+}
+
+.match-search input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #303744;
+  border-radius: 10px;
+  background: #151b25;
+  color: white;
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.match-search input:focus {
+  border-color: #16c784;
+}
+
+.match-search input::placeholder {
+  color: #8993a3;
+}
   
 
 .live-scoreboard {
@@ -431,6 +455,14 @@ main{padding:28px 5%}.hero{padding:50px 5%}}
 <section id="matches">
   <div class="section-head">
     <h2>Worldwide Match Centre</h2>
+    <div class="match-search">
+  <input
+    type="search"
+    id="matchSearch"
+    placeholder="🔍 Search teams, leagues or matches..."
+    autocomplete="off"
+  >
+    </div>
     
 <section class="live-scoreboard" id="liveScoreboard">
   <div class="live-scoreboard-heading">
