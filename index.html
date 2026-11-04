@@ -8,6 +8,103 @@
 <title>Football Live | Watch Football</title>
 <style>
   
+.live-scoreboard {
+  margin: 25px 0;
+  padding: 18px;
+  background: #101d30;
+  border: 1px solid #293d55;
+  border-radius: 16px;
+}
+
+.live-scoreboard-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.live-scoreboard-heading h2 {
+  font-size: 17px;
+  margin: 0;
+  color: #fff;
+}
+
+.live-scoreboard-heading #liveMatchCount {
+  margin-left: auto;
+  font-size: 10px;
+  color: #9aabc0;
+  font-weight: 800;
+}
+
+.live-pulse {
+  width: 9px;
+  height: 9px;
+  background: #ff394f;
+  border-radius: 50%;
+  animation: livePulse 1.2s infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: .3; }
+}
+
+.live-scoreboard-list {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 5px;
+}
+
+.live-score-item {
+  flex: 0 0 230px;
+  background: #1b2b42;
+  border: 1px solid #34445c;
+  border-radius: 12px;
+  padding: 12px;
+  cursor: pointer;
+}
+
+.live-score-league {
+  font-size: 10px;
+  color: #a8b8ca;
+  margin-bottom: 10px;
+}
+
+.live-score-team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  margin: 8px 0;
+}
+
+.live-score-team img {
+  width: 23px;
+  height: 23px;
+  object-fit: contain;
+}
+
+.live-score-value {
+  margin-left: auto;
+  font-weight: 900;
+  font-size: 15px;
+  color: white;
+}
+
+.live-score-minute {
+  color: #ff5264;
+  font-size: 11px;
+  font-weight: 900;
+  margin-top: 10px;
+}
+
+.live-score-empty {
+  color: #9aabc0;
+  font-size: 13px;
+}
+  
+  
 .clickable-match {
   cursor: pointer;
   transition: transform .2s ease, border-color .2s ease;
@@ -347,6 +444,19 @@ main{padding:28px 5%}.hero{padding:50px 5%}}
 <section id="matches">
   <div class="section-head">
     <h2>Worldwide Match Centre</h2>
+    
+<section class="live-scoreboard" id="liveScoreboard">
+  <div class="live-scoreboard-heading">
+    <span class="live-pulse"></span>
+    <h2>LIVE NOW</h2>
+    <span id="liveMatchCount">0 MATCHES</span>
+  </div>
+
+  <div class="live-scoreboard-list" id="liveScoreboardList">
+    <p class="small">Checking live matches...</p>
+  </div>
+</section>
+    
     <span id="match-count" class="small">Loading matches...</span>
   </div>
 
@@ -521,6 +631,7 @@ async function loadMatches(silent = false) {
 
     updateLeagueOptions();
     renderMatches();
+    renderLiveScoreboard();
 
     updatedLabel.textContent =
       "Last updated: " + new Date().toLocaleTimeString();
@@ -734,6 +845,86 @@ function renderMatches() {
     });
   });
 }
+  
+function renderLiveScoreboard() {
+  const scoreboard = document.getElementById("liveScoreboardList");
+  const count = document.getElementById("liveMatchCount");
+
+  if (!scoreboard || !count) return;
+
+  const liveMatches = allMatches.filter(
+    match => matchStatus(match) === "LIVE"
+  );
+
+  count.textContent = `${liveMatches.length} MATCHES`;
+
+  if (!liveMatches.length) {
+    scoreboard.innerHTML =
+      '<p class="live-score-empty">No live matches right now. Check back soon.</p>';
+    return;
+  }
+
+  scoreboard.innerHTML = liveMatches.map(match => {
+    const homeLogo = /^\d+$/.test(String(match.home_id || ""))
+      ? `${FOOTBALL_API}/team-logo?id=${encodeURIComponent(match.home_id)}`
+      : "";
+
+    const awayLogo = /^\d+$/.test(String(match.away_id || ""))
+      ? `${FOOTBALL_API}/team-logo?id=${encodeURIComponent(match.away_id)}`
+      : "";
+
+    const homeScore = match.home_score ?? "-";
+    const awayScore = match.away_score ?? "-";
+
+    return `
+      <article class="live-score-item"
+        data-live-match-id="${escapeHTML(match.id || "")}"
+        tabindex="0"
+        role="button">
+
+        <div class="live-score-league">
+          ${escapeHTML(match.league_name || "Football")}
+        </div>
+
+        <div class="live-score-team">
+          ${homeLogo ? `<img src="${homeLogo}" alt="" onerror="this.style.display='none'">` : ""}
+          <span>${escapeHTML(match.home_team || "Home")}</span>
+          <strong class="live-score-value">${escapeHTML(homeScore)}</strong>
+        </div>
+
+        <div class="live-score-team">
+          ${awayLogo ? `<img src="${awayLogo}" alt="" onerror="this.style.display='none'">` : ""}
+          <span>${escapeHTML(match.away_team || "Away")}</span>
+          <strong class="live-score-value">${escapeHTML(awayScore)}</strong>
+        </div>
+
+        <div class="live-score-minute">
+          🔴 LIVE ${escapeHTML(match.minute || "")}
+        </div>
+      </article>
+    `;
+  }).join("");
+
+  scoreboard.querySelectorAll(".live-score-item").forEach(card => {
+    const openDetails = () => {
+      const match = allMatches.find(
+        item => String(item.id) === card.dataset.liveMatchId
+      );
+
+      if (match) showMatchDetails(match);
+    };
+
+    card.addEventListener("click", openDetails);
+
+    card.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openDetails();
+      }
+    });
+  });
+}
+  
   
 function showMatchDetails(match) {
   const status = matchStatus(match);
