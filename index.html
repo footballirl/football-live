@@ -752,9 +752,31 @@ function teamBadge(teamName, teamId, side) {
 function renderMatches() {
   const selectedLeague = leagueFilter.value;
 
-  const filtered = allMatches.filter(match => {
-    const status = matchStatus(match);
+  const searchText = document
+  .getElementById("matchSearch")
+  .value.trim()
+  .toLowerCase();
 
+let matches = allMatches.filter(match => {
+  const statusMatches =
+    selectedStatus === "ALL" ||
+    matchStatus(match) === selectedStatus;
+
+  const leagueMatches =
+    !leagueFilter || match.league_name === leagueFilter;
+
+  const searchMatches =
+    !searchText ||
+    [
+      match.home_team,
+      match.away_team,
+      match.league_name
+    ].some(value =>
+      String(value || "").toLowerCase().includes(searchText)
+    );
+
+  return statusMatches && leagueMatches && searchMatches;
+});
     const statusMatches =
       selectedStatus === "all" ||
       selectedStatus === status ||
@@ -1033,6 +1055,9 @@ document.getElementById("refresh-matches")
 loadMatches();
 setInterval(loadMatches, 60000);
 </script>
+  document
+  .getElementById("matchSearch")
+  .addEventListener("input", renderMatches);
 
 </body>
 </html>
