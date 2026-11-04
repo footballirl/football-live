@@ -8,6 +8,96 @@
 <title>Football Live | Watch Football</title>
 <style>
   
+.clickable-match {
+  cursor: pointer;
+  transition: transform .2s ease, border-color .2s ease;
+}
+
+.clickable-match:hover {
+  transform: translateY(-3px);
+  border-color: #38df91;
+}
+
+.match-more {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid #29394e;
+  color: #38df91;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.match-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, .82);
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.match-modal-content {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  padding: 26px 20px;
+  border-radius: 18px;
+  border: 1px solid #34445c;
+  background: #111e30;
+  color: white;
+}
+
+.match-modal-close {
+  position: absolute;
+  right: 15px;
+  top: 12px;
+  background: #26364b;
+  color: white;
+  border: 0;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.match-modal-teams {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+  margin: 35px 0 25px;
+}
+
+.match-modal-score {
+  font-size: 26px;
+  font-weight: 900;
+}
+
+.match-modal-status {
+  text-align: center;
+  font-weight: 800;
+  margin-bottom: 25px;
+}
+
+.match-modal-info {
+  border-top: 1px solid #34445c;
+  padding-top: 15px;
+  color: #bdc8d8;
+  font-size: 14px;
+}
+
+.match-modal-info p {
+  margin: 12px 0;
+}
+
+.match-modal-info strong {
+  color: white;
+}
+  
+  
 /* TEAM LOGOS */
 .teams {
   display: grid;
@@ -465,38 +555,6 @@ function updateLeagueOptions() {
 }
 
 
-function teamBadge(match, side) {
-  const name = match[side + "_team"] || side;
-  const initials = name
-    .split(/\s+/)
-    .slice(0, 2)
-    .map(word => word.charAt(0))
-    .join("")
-    .toUpperCase();
-
-  const possibleLogo = [
-    match[side + "_team_logo"],
-    match[side + "_logo"],
-    match[side + "_team_badge"],
-    match[side + "_team_crest"]
-  ];
-
-  const logo = possibleLogo.find(value =>
-    typeof value === "string" &&
-    /^https:\/\//i.test(value)
-  );
-
-  if (logo) {
-    return `<div class="team-badge">
-      <img src="${escapeHTML(logo)}"
-           alt="${escapeHTML(name)}"
-           onerror="this.style.display='none'">
-    </div>`;
-  }
-
-  return `<div class="team-badge">${escapeHTML(initials)}</div>`;
-}
-
 
 function teamBadge(teamName, teamId, side) {
   const name = teamName || (side === "home" ? "Home" : "Away");
@@ -535,6 +593,7 @@ function teamBadge(teamName, teamId, side) {
     </div>
   `;
 }
+
 
 function renderMatches() {
   const selectedLeague = leagueFilter.value;
@@ -586,8 +645,28 @@ function renderMatches() {
           ? "UPCOMING"
           : escapeHTML(status);
 
+    const matchDetails = {
+      id: match.id,
+      league: match.league_name || "Football",
+      stage: match.stage || "",
+      home: match.home_team || "Home",
+      away: match.away_team || "Away",
+      homeId: match.home_id,
+      awayId: match.away_id,
+      homeScore: match.home_score,
+      awayScore: match.away_score,
+      minute: match.minute || "",
+      status: status,
+      kickoff: formatKickoff(match)
+    };
+
     return `
-      <article class="match">
+      <article class="match clickable-match"
+        role="button"
+        tabindex="0"
+        data-match-id="${escapeHTML(match.id || "")}"
+        aria-label="View ${escapeHTML(match.home_team)} versus ${escapeHTML(match.away_team)} details">
+
         <div class="league">
           ${escapeHTML(match.league_name || "Football")}
         </div>
@@ -605,10 +684,98 @@ function renderMatches() {
         <div class="small" style="margin-top:8px">
           ${escapeHTML(formatKickoff(match))}
         </div>
+
+        <div class="match-more">VIEW MATCH DETAILS →</div>
       </article>
     `;
   }).join("");
+
+  // Open details when a match is clicked
+  matchesList.querySelectorAll(".clickable-match").forEach(card => {
+    const openDetails = () => {
+      const match = allMatches.find(
+        item => String(item.id) === card.dataset.matchId
+      );
+
+      if (match) showMatchDetails(match);
+    };
+
+    card.addEventListener("click", openDetails);
+
+    card.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        openDetails();
+      }
+    });
+  });
 }
+  
+function showMatchDetails(match) {
+  const status = matchStatus(match);
+
+  const hasScore =
+    match.home_score != null &&
+    match.away_score != null;
+
+  const score = hasScore
+    ? `${escapeHTML(match.home_score)} - ${escapeHTML(match.away_score)}`
+    : "VS";
+
+  const details = document.createElement("div");
+  details.className = "match-modal";
+
+  details.innerHTML = `
+    <div class="match-modal-content">
+      <button class="match-modal-close" aria-label="Close">✕</button>
+
+      <div class="league">
+        ${escapeHTML(match.league_name || "Football")}
+      </div>
+
+      <div class="match-modal-teams">
+        ${teamBadge(match.home_team, match.home_id, "home")}
+
+        <strong class="match-modal-score">${score}</strong>
+
+        ${teamBadge(match.away_team, match.away_id, "away")}
+      </div>
+
+      <div class="match-modal-status">
+        ${status === "LIVE" ? "🔴 LIVE " + escapeHTML(match.minute || "") :
+          status === "finished" ? "FULL TIME" :
+          status === "Scheduled" ? "UPCOMING" : escapeHTML(status)}
+      </div>
+
+      <div class="match-modal-info">
+        <p><strong>Competition:</strong> ${escapeHTML(match.league_name || "Football")}</p>
+        <p><strong>Stage:</strong> ${escapeHTML(match.stage || "Not available")}</p>
+        <p><strong>Kickoff:</strong> ${escapeHTML(formatKickoff(match))}</p>
+        <p><strong>Match ID:</strong> ${escapeHTML(match.id || "Not available")}</p>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(details);
+
+  const close = () => details.remove();
+
+  details.querySelector(".match-modal-close")
+    .addEventListener("click", close);
+
+  details.addEventListener("click", event => {
+    if (event.target === details) close();
+  });
+
+  document.addEventListener("keydown", function escapeModal(event) {
+    if (event.key === "Escape") {
+      close();
+      document.removeEventListener("keydown", escapeModal);
+    }
+  });
+}
+  
+  
 
 
 document.querySelectorAll(".filter[data-status]").forEach(button => {
