@@ -256,7 +256,129 @@ function updateLeagueOptions() {
 
   const leagues = [...new Set(
     allMatches.map(match => match.league_name).filter(Boolean)
-  )].sort();
+
+<script>
+const FOOTBALL_API =
+  "https://football-live-api.arounarazak140.workers.dev";
+
+let allMatches = [];
+let selectedStatus = "all";
+
+const matchesList = document.getElementById("matches-list");
+const dateInput = document.getElementById("match-date");
+const leagueFilter = document.getElementById("league-filter");
+const countLabel = document.getElementById("match-count");
+const updatedLabel = document.getElementById("last-updated");
+
+function localDate() {
+  const d = new Date();
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, "0"),
+    String(d.getDate()).padStart(2, "0")
+  ].join("-");
+}
+
+dateInput.value = localDate();
+
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  })[char]);
+}
+
+function matchStatus(match) {
+  const status = String(match.status || "").toUpperCase();
+
+  if (["LIVE", "1H", "2H", "HT", "ET", "PEN"].includes(status)) {
+    return "LIVE";
+  }
+
+  if (["FT", "AET", "PENS"].includes(status)) {
+    return "finished";
+  }
+
+  if (["NS", "SCHEDULED", "TIMED"].includes(status)) {
+    return "Scheduled";
+  }
+
+  return status || "Scheduled";
+}
+
+function formatKickoff(match) {
+  const time = match.kickoff_utc || match.datetime;
+
+  if (!time) return match.date || "Time unavailable";
+
+  const parsed = new Date(
+    time.endsWith("Z") ? time : time.replace(" ", "T") + "Z"
+  );
+
+  if (Number.isNaN(parsed.getTime())) return "Time unavailable";
+
+  return parsed.toLocaleString([], {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+async function loadMatches() {
+  matchesList.innerHTML =
+    '<p class="small">Loading football matches...</p>';
+
+  try {
+    const date = dateInput.value || localDate();
+
+    const response = await fetch(
+      `${FOOTBALL_API}/fixtures?date=${encodeURIComponent(date)}`
+    );
+
+    if (!response.ok) {
+      throw new Error("API server error: " + response.status);
+    }
+
+    const result = await response.json();
+
+    if (!Array.isArray(result.data)) {
+      throw new Error("Unexpected API response. Check Worker data format.");
+    }
+
+    allMatches = result.data;
+
+    updateLeagueOptions();
+    renderMatches();
+
+    updatedLabel.textContent =
+      "Last updated: " + new Date().toLocaleTimeString();
+
+  } catch (error) {
+    console.error(error);
+
+    matchesList.innerHTML = `
+      <div class="notice">
+        Unable to load football matches.<br>
+        ${escapeHTML(error.message)}
+      </div>
+    `;
+
+    countLabel.textContent = "Connection problem";
+  }
+}
+
+function updateLeagueOptions() {
+  const previous = leagueFilter.value;
+
+  const leagues = [
+    ...new Set(
+      allMatches.map(match => match.league_name).filter(Boolean)
+    )
+  ].sort();
 
   leagueFilter.innerHTML =
     '<option value="all">All competitions</option>';
@@ -291,42 +413,37 @@ function renderMatches() {
     return statusMatches && leagueMatches;
   });
 
-  countLabel.textContent =
-    `${filtered.length} matches`;
+  countLabel.textContent = filtered.length + " matches";
 
   if (!filtered.length) {
     matchesList.innerHTML =
-      '<p class="small">No matches found for these filters and this date.</p>';
+      '<p class="small">No matches found for this date.</p>';
     return;
   }
 
-  filtered.sort((a, b) => {
-    const aLive = matchStatus(a) === "LIVE" ? 0 : 1;
-    const bLive = matchStatus(b) === "LIVE" ? 0 : 1;
-    return aLive - bLive;
-  });
+  filtered.sort((a, b) =>
+    (matchStatus(a) === "LIVE" ? 0 : 1) -
+    (matchStatus(b) === "LIVE" ? 0 : 1)
+  );
 
   matchesList.innerHTML = filtered.map(match => {
     const status = matchStatus(match);
-    const live = status === "LIVE";
 
     const hasScore =
-      match.home_score !== null &&
-      match.home_score !== undefined &&
-      match.away_score !== null &&
-      match.away_score !== undefined;
+      match.home_score != null &&
+      match.away_score != null;
 
     const score = hasScore
-      ? `${match.home_score} - ${match.away_score}`
+      ? `${escapeHTML(match.home_score)} - ${escapeHTML(match.away_score)}`
       : "VS";
 
-    const statusText = live
-      ? `🔴 LIVE ${match.minute ? "· " + escapeHTML(match.minute) : ""}`
+    const statusText = status === "LIVE"
+      ? "🔴 LIVE " + (match.minute ? "· " + escapeHTML(match.minute) : "")
       : status === "finished"
         ? "FULL TIME"
         : status === "Scheduled"
           ? "UPCOMING"
-          : escapeHTML(status || "MATCH");
+          : escapeHTML(status);
 
     return `
       <article class="match">
@@ -343,10 +460,12 @@ function renderMatches() {
         </div>
 
         <div class="small">${statusText}</div>
+
         <div class="small" style="margin-top:8px">
           ${escapeHTML(formatKickoff(match))}
         </div>
-      </article>`;
+      </article>
+    `;
   }).join("");
 }
 
@@ -364,13 +483,14 @@ document.querySelectorAll(".filter[data-status]").forEach(button => {
 
 leagueFilter.addEventListener("change", renderMatches);
 dateInput.addEventListener("change", loadMatches);
+
 document.getElementById("refresh-matches")
   .addEventListener("click", loadMatches);
 
 loadMatches();
 setInterval(loadMatches, 60000);
-
-}
 </script>
+
 </body>
-</html>
+    </html>
+      
