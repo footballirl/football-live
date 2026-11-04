@@ -8,101 +8,88 @@
 <title>Football Live | Watch Football</title>
 <style>
   
+
 .live-scoreboard {
-  margin: 25px 0;
-  padding: 18px;
+  margin: 14px 0;
+  padding: 10px;
   background: #101d30;
   border: 1px solid #293d55;
-  border-radius: 16px;
+  border-radius: 12px;
 }
 
 .live-scoreboard-heading {
   display: flex;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 15px;
+  gap: 7px;
+  margin-bottom: 9px;
 }
 
 .live-scoreboard-heading h2 {
-  font-size: 17px;
+  font-size: 13px;
   margin: 0;
-  color: #fff;
 }
 
 .live-scoreboard-heading #liveMatchCount {
   margin-left: auto;
-  font-size: 10px;
+  font-size: 9px;
   color: #9aabc0;
-  font-weight: 800;
 }
 
 .live-pulse {
-  width: 9px;
-  height: 9px;
+  width: 7px;
+  height: 7px;
   background: #ff394f;
   border-radius: 50%;
   animation: livePulse 1.2s infinite;
 }
 
-@keyframes livePulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: .3; }
-}
-
 .live-scoreboard-list {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   overflow-x: auto;
-  padding-bottom: 5px;
+  padding-bottom: 3px;
 }
 
 .live-score-item {
-  flex: 0 0 230px;
+  flex: 0 0 175px;
+  padding: 9px;
   background: #1b2b42;
   border: 1px solid #34445c;
-  border-radius: 12px;
-  padding: 12px;
-  cursor: pointer;
+  border-radius: 9px;
 }
 
 .live-score-league {
-  font-size: 10px;
+  font-size: 9px;
+  margin-bottom: 6px;
   color: #a8b8ca;
-  margin-bottom: 10px;
 }
 
 .live-score-team {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  margin: 8px 0;
+  gap: 6px;
+  font-size: 10px;
+  margin: 5px 0;
 }
 
 .live-score-team img {
-  width: 23px;
-  height: 23px;
+  width: 19px;
+  height: 19px;
   object-fit: contain;
 }
 
 .live-score-value {
   margin-left: auto;
-  font-weight: 900;
-  font-size: 15px;
-  color: white;
+  font-size: 12px;
 }
 
 .live-score-minute {
+  font-size: 10px;
+  margin-top: 6px;
   color: #ff5264;
-  font-size: 11px;
   font-weight: 900;
-  margin-top: 10px;
 }
 
-.live-score-empty {
-  color: #9aabc0;
-  font-size: 13px;
-}
   
   
 .clickable-match {
