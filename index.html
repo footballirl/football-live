@@ -487,9 +487,18 @@ function formatKickoff(match) {
   });
 }
 
-async function loadMatches() {
-  matchesList.innerHTML =
-    '<p class="small">Loading football matches...</p>';
+
+let matchesRequestInProgress = false;
+
+async function loadMatches(silent = false) {
+  if (matchesRequestInProgress) return;
+
+  matchesRequestInProgress = true;
+
+  if (!silent) {
+    matchesList.innerHTML =
+      '<p class="small">Loading football matches...</p>';
+  }
 
   try {
     const date = dateInput.value || localDate();
@@ -519,16 +528,31 @@ async function loadMatches() {
   } catch (error) {
     console.error(error);
 
-    matchesList.innerHTML = `
-      <div class="notice">
-        Unable to load football matches.<br>
-        ${escapeHTML(error.message)}
-      </div>
-    `;
+    if (!silent) {
+      matchesList.innerHTML = `
+        <div class="notice">
+          Unable to load football matches.<br>
+          ${escapeHTML(error.message)}
+        </div>
+      `;
 
-    countLabel.textContent = "Connection problem";
+      countLabel.textContent = "Connection problem";
+    } else {
+      updatedLabel.textContent = "Auto-refresh failed. Retrying soon...";
+    }
+
+  } finally {
+    matchesRequestInProgress = false;
   }
 }
+
+// AUTOMATIC LIVE SCORE REFRESH
+setInterval(() => {
+  if (document.visibilityState === "visible") {
+    loadMatches(true);
+  }
+}, 30000);
+  
 
 function updateLeagueOptions() {
   const previous = leagueFilter.value;
